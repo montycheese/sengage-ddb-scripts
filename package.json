@@ -5,6 +5,7 @@
   "main": "app.js",
   "scripts": {
     "start": "node ./bin/bootstrap.js",
+    "analysis" : "node ./bin/analysis.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "config": {
@@ -18,6 +19,7 @@
     "aws-sdk": "^2.792.0",
     "hypevision-common-core": "^1.0.50",
     "hypevision-data-providers": "^1.0.84",
-    "objects-to-csv": "^1.3.6"
+    "objects-to-csv": "^1.3.6",
+    "useragent": "^2.3.0"
   }
 }
