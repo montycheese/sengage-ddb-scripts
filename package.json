@@ -1,0 +1,23 @@
+{
+  "name": "sengage-ddb-scripts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "node ./bin/bootstrap.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "config": {
+    "experienceId": null,
+    "eventId": null
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.792.0",
+    "hypevision-common-core": "^1.0.50",
+    "hypevision-data-providers": "^1.0.84",
+    "objects-to-csv": "^1.3.6"
+  }
+}
