@@ -17,7 +17,7 @@ const EVENT_ENTRIES_TABLE_NAME = 'EventEntries';
 
 class App {
     constructor() {
-        this._stage = 'prod';
+        this._stage = 'beta';
         this._eventEntriesDataProvider = new EventEntriesDataProvider(dynamodb, `${EVENT_ENTRIES_TABLE_NAME}-${this._stage}`);
         this._eventDataProvider = new EventDataProvider(dynamodb, `${EVENTS_TABLE_NAME}-${this._stage}`);
         this._experienceDataProvider = new ExperienceDataProvider(dynamodb, `${EXPERIENCES_TABLE_NAME}-${this._stage}`);
@@ -28,29 +28,37 @@ class App {
         const event = await this._eventDataProvider.getEvent(options.ExperienceId, options.EventId);
         const entries = [];
         const start = Date.now();
+        const promises = [];
         for (let i = 1; i <= SuffixShardSize; i++) {
             const shardedEventId = `${options.EventId}-${i}`;
             console.debug(`Creating EventEntries request for shard ${shardedEventId}`);
-            const fetchedEntries = await this._eventEntriesDataProvider.listEntries(shardedEventId, Number.MAX_SAFE_INTEGER, true);
-            fetchedEntries.forEach(entry => {
-               if (event.Module === Module.SPLASH.id && event.Submodule === Submodule.LOBBY.id) {
-                   // normalize the map into first class citizens of the object.
-                   const optionsMap = JSON.parse(entry.Option);
-                   Object.keys(optionsMap).forEach((key) => {
-                      entry[key] = optionsMap[key];
-                   });
-               }
-               if (entry.UserAgent && entry.UserAgent !== '') {
-                   // add useragent info
-                   var agent = useragent.lookup(entry.UserAgent);
-                   entry['UserAgentOS'] = agent.os.toString();
-                   entry['UserAgentDevice'] = agent.device.toString();
-                   entry['IsMobile'] = mobileCheck(entry.UserAgent);
-               }
+            const fetchedEntries = this._eventEntriesDataProvider.listEntries(shardedEventId, Number.MAX_SAFE_INTEGER, true).then(resp => {
+                resp.forEach(entry => {
+                    if (event.Module === Module.SPLASH.id && event.Submodule === Submodule.LOBBY.id) {
+                        // normalize the map into first class citizens of the object.
+                        const optionsMap = JSON.parse(entry.Option);
+                        Object.keys(optionsMap).forEach((key) => {
+                            entry[key] = optionsMap[key];
+                        });
+                    }
+                    if (entry.UserAgent && entry.UserAgent !== '') {
+                        // add useragent info
+                        var agent = useragent.lookup(entry.UserAgent);
+                        entry['UserAgentOS'] = agent.os.toString();
+                        entry['UserAgentDevice'] = agent.device.toString();
+                        entry['IsMobile'] = mobileCheck(entry.UserAgent);
+                    }
+                });
+                entries.push(...resp);
+                console.debug(`Fetched ${resp.length} EventEntries for shard ${shardedEventId}`);
             });
-            entries.push(...fetchedEntries);
-            console.debug(`Fetched ${fetchedEntries.length} EventEntries for shard ${shardedEventId}`);
+            promises.push(fetchedEntries);
         }
+
+        for (let i = 0; i < SuffixShardSize; i+=5) {
+            await Promise.all(promises.slice(i, i+5));
+        }
+
         console.debug(`Fetched ${entries.length} total entries in ${(Date.now() - start) / 1000} seconds`);
         // write to file
         const fn = `${options.ExperienceId}-${options.EventId}-${new Date().toISOString()}.csv`;
