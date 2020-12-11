@@ -25,10 +25,9 @@ class App {
     }
 
     async start(options) {
-        console.log('Hello World!');
-
         const event = await this._eventDataProvider.getEvent(options.ExperienceId, options.EventId);
         const entries = [];
+        const start = Date.now();
         for (let i = 1; i <= SuffixShardSize; i++) {
             const shardedEventId = `${options.EventId}-${i}`;
             console.debug(`Creating EventEntries request for shard ${shardedEventId}`);
@@ -52,6 +51,7 @@ class App {
             entries.push(...fetchedEntries);
             console.debug(`Fetched ${fetchedEntries.length} EventEntries for shard ${shardedEventId}`);
         }
+        console.debug(`Fetched ${entries.length} total entries in ${(Date.now() - start) / 1000} seconds`);
         // write to file
         const fn = `${options.ExperienceId}-${options.EventId}-${new Date().toISOString()}.csv`;
         const csv = new ObjectsToCsv(entries);
